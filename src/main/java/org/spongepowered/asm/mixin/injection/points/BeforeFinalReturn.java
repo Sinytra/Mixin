@@ -78,6 +78,11 @@ public class BeforeFinalReturn extends InjectionPoint {
     }
 
     @Override
+    public RestrictTargetLevel getCancellationRestriction(IInjectionPointContext context) {
+        return RestrictTargetLevel.ALLOW_ALL;
+    }
+
+    @Override
     public boolean find(String desc, InsnList insns, Collection<AbstractInsnNode> nodes) {
         AbstractInsnNode ret = null;
         
