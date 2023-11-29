@@ -783,7 +783,10 @@ class MixinPreProcessorStandard {
 
         ClassInfo owner = ClassInfo.forDescriptor(ref.getOwner(), TypeLookup.DECLARED_TYPE);
         if (owner == null) {
-            throw new RuntimeException(new ClassNotFoundException(ref.getOwner().replace('/', '.')));
+            MixinPreProcessorStandard.logger.warn("Not transforming member reference {} as owner class was not found", ref);
+            metaTimer.end();
+            activity.end();
+            return;
         }
 
         ClassInfo.Member member;
