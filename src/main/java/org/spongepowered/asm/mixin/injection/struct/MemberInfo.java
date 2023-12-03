@@ -890,8 +890,11 @@ public final class MemberInfo implements ITargetSelectorRemappable, ITargetSelec
             owner = name.substring(0, lastDotPos).replace('.', '/');
             name = name.substring(lastDotPos + 1);
         } else if (semiColonPos > -1 && name.startsWith("L")) {
-            owner = name.substring(1, semiColonPos).replace('.', '/');
-            name = name.substring(semiColonPos + 1);
+            String maybeOwner = name.substring(1, semiColonPos).replace('.', '/');
+            if (!maybeOwner.contains(":") && !maybeOwner.contains(";")) {
+                owner = maybeOwner;
+                name = name.substring(semiColonPos + 1);
+            }
         }
 
         int parenPos = name.indexOf('(');
