@@ -360,6 +360,10 @@ class MixinProcessor {
 
                 try {
                     TargetClassContext context = new TargetClassContext(environment, this.extensions, this.sessionId, name, targetClassNode, mixins);
+                    // Sinytra: Keep an untransformed copy of the classnode around
+                    if (environment.getOption(Option.FIX_FRAME_EXPANSION)) {
+                        context.setOriginalNode(targetClassNode);
+                    }
                     context.applyMixins();
                     
                     transformed |= this.coprocessors.postProcess(name, targetClassNode);

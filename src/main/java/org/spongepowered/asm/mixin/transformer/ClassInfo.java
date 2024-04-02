@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.spongepowered.asm.logging.Level;
 import org.spongepowered.asm.logging.ILogger;
 import org.objectweb.asm.Opcodes;
@@ -676,10 +678,13 @@ public final class ClassInfo {
      */
     private static final Map<String, ClassInfo> cache = new HashMap<String, ClassInfo>();
 
+    private static final Map<String, ClassInfo> nonExpandedCache = new HashMap<String, ClassInfo>();
+
     private static final ClassInfo OBJECT = new ClassInfo();
 
     static {
         ClassInfo.cache.put(ClassInfo.JAVA_LANG_OBJECT, ClassInfo.OBJECT);
+        ClassInfo.nonExpandedCache.put(ClassInfo.JAVA_LANG_OBJECT, ClassInfo.OBJECT);
     }
 
     /**
@@ -2000,6 +2005,35 @@ public final class ClassInfo {
         if (info == null) {
             info = new ClassInfo(classNode);
             ClassInfo.cache.put(classNode.name, info);
+        }
+
+        return info;
+    }
+
+    public static ClassInfo forNameDontExpandFrames(String className) {
+        className = className.replace('.', '/');
+
+        ClassInfo info = ClassInfo.nonExpandedCache.get(className);
+        if (info == null) {
+            try {
+                ClassNode classNode = MixinService.getService().getBytecodeProvider().getClassNode(className);
+
+                ClassWriter shrinkWriter = new ClassWriter(0);
+                classNode.accept(shrinkWriter);
+                ClassReader shrinkReader = new ClassReader(shrinkWriter.toByteArray());
+                ClassNode shrinkNode = new ClassNode();
+                shrinkReader.accept(shrinkNode, 0);
+
+                info = new ClassInfo(shrinkNode);
+            } catch (Exception ex) {
+                ClassInfo.logger.catching(Level.TRACE, ex);
+                ClassInfo.logger.warn("Error loading class: {} ({}: {})", className, ex.getClass().getName(), ex.getMessage());
+                //                ex.printStackTrace();
+            }
+
+            // Put null in the cache if load failed
+            ClassInfo.nonExpandedCache.put(className, info);
+            ClassInfo.logger.trace("Added non-expanded class metadata for {} to metadata cache", className);
         }
 
         return info;

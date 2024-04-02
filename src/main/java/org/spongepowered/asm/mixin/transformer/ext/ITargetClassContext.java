@@ -43,4 +43,7 @@ public interface ITargetClassContext {
      */
     public abstract ClassNode getClassNode();
 
+    default ClassNode getOriginalNode() {
+        return null;
+    }
 }

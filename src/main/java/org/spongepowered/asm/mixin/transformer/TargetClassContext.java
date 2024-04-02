@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
 import org.spongepowered.asm.logging.ILogger;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -157,6 +159,8 @@ final class TargetClassContext extends ClassContext implements ITargetClassConte
      */
     private boolean forceExport;
     
+    private ClassNode originalNode;
+
     TargetClassContext(MixinEnvironment env, Extensions extensions, String sessionId, String name, ClassNode classNode, SortedSet<MixinInfo> mixins) {
         this.env = env;
         this.extensions = extensions;
@@ -494,4 +498,15 @@ final class TargetClassContext extends ClassContext implements ITargetClassConte
         return this.suppressedExceptions;
     }
     
+    public ClassNode getOriginalNode() {
+        return this.originalNode;
+    }
+
+    public void setOriginalNode(ClassNode originalNode) {
+        ClassWriter writer = new ClassWriter(0);
+        originalNode.accept(writer);
+        ClassReader reader = new ClassReader(writer.toByteArray());
+        this.originalNode = new ClassNode();
+        reader.accept(this.originalNode, ClassReader.EXPAND_FRAMES);
+    }
 }

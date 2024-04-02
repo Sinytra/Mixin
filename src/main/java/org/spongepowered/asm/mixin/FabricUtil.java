@@ -31,6 +31,7 @@ import org.spongepowered.asm.mixin.injection.selectors.ISelectorContext;
 public final class FabricUtil {
     public static final String KEY_MOD_ID = "fabric-modId";
     public static final String KEY_COMPATIBILITY = "fabric-compat";
+    public static final String KEY_FIX_FRAME_EXPANSION = "fix-frame-expansion";
 
     // fabric mixin version compatibility boundaries, (major * 1000 + minor) * 1000 + patch
     public static final int COMPATIBILITY_0_9_2 = 9002; // 0.9.2+mixin.0.8.2 incompatible local variable handling
@@ -51,6 +52,10 @@ public final class FabricUtil {
 
     public static int getCompatibility(ISelectorContext context) {
         return getDecoration(getConfig(context), KEY_COMPATIBILITY, COMPATIBILITY_LATEST);
+    }
+
+    public static boolean getFrameExpansion(ISelectorContext context) {
+        return getDecoration(getConfig(context), KEY_FIX_FRAME_EXPANSION, false);
     }
 
     private static IMixinConfig getConfig(ISelectorContext context) {

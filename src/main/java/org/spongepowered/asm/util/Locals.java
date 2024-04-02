@@ -46,9 +46,12 @@ import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
+import org.spongepowered.asm.mixin.refmap.IMixinContext;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.FrameData;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.Method;
+import org.spongepowered.asm.mixin.transformer.MixinTargetContext;
+import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
 import org.spongepowered.asm.util.asm.ASM;
 import org.spongepowered.asm.util.asm.MixinVerifier;
 import org.spongepowered.asm.util.throwables.LVTGeneratorError;
@@ -332,11 +335,27 @@ public final class Locals {
      *      specified location
      */
     public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, int fabricCompatibility) {
+        return getLocalsAt(classNode, method, node, fabricCompatibility, false, null);
+    }
+
+    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, int fabricCompatibility, boolean fixFrameExpansion, IMixinContext context) {
         if (fabricCompatibility >= org.spongepowered.asm.mixin.FabricUtil.COMPATIBILITY_0_10_0) {
+            if (fixFrameExpansion && context instanceof MixinTargetContext) {
+                return Locals.getLocalsAtWithExpandedFrames(((MixinTargetContext) context).getTarget(), classNode, method, node);
+            }
             return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
         } else {
             return getLocalsAt_0_9_2(classNode, method, node);
         }
+    }
+
+    private static LocalVariableNode[] getLocalsAtWithExpandedFrames(ITargetClassContext context, ClassNode classNode, MethodNode method, AbstractInsnNode node) {
+        ClassNode expandedClass = context.getOriginalNode();
+        MethodNode expandedMethod = expandedClass.methods.get(classNode.methods.indexOf(method));
+        AbstractInsnNode expandedInsn = expandedMethod.instructions.get(method.instructions.indexOf(node));
+
+        ClassInfo nonExpandedInfo = ClassInfo.forNameDontExpandFrames(classNode.name);
+        return Locals.getLocalsAt(expandedClass, expandedMethod, expandedInsn, Settings.DEFAULT, nonExpandedInfo);
     }
     
     /**
@@ -383,6 +402,14 @@ public final class Locals {
      *      specified location
      */
     public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, Settings settings) {
+        ClassInfo classInfo = ClassInfo.forName(classNode.name);
+        if (classInfo == null) {
+            throw new LVTGeneratorError("Could not load class metadata for " + classNode.name + " generating LVT for " + method.name);
+        }
+        return getLocalsAt(classNode, method, node, settings, classInfo);
+    }
+    
+    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, Settings settings, ClassInfo classInfo) {
         for (int i = 0; i < 3 && (node instanceof LabelNode || node instanceof LineNumberNode); i++) {
             AbstractInsnNode nextNode = Locals.nextNode(method.instructions, node);
             if (nextNode instanceof FrameNode) { // Do not ffwd over frames
@@ -390,11 +417,7 @@ public final class Locals {
             }
             node = nextNode;
         }
-        
-        ClassInfo classInfo = ClassInfo.forName(classNode.name);
-        if (classInfo == null) {
-            throw new LVTGeneratorError("Could not load class metadata for " + classNode.name + " generating LVT for " + method.name);
-        }
+
         Method methodInfo = classInfo.findMethod(method, method.access | ClassInfo.INCLUDE_INITIALISERS);
         if (methodInfo == null) {
             throw new LVTGeneratorError("Could not locate method metadata for " + method.name + " generating LVT in " + classNode.name);
