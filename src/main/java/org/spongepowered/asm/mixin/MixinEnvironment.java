@@ -407,8 +407,6 @@ public final class MixinEnvironment implements ITokenProvider {
          * </dl>
          */
         SHIFT_BY_VIOLATION_BEHAVIOUR(Option.ENVIRONMENT, Inherit.INDEPENDENT, "shiftByViolation", "warn"),
-        
-        FIX_FRAME_EXPANSION(Option.ENVIRONMENT, Inherit.INDEPENDENT, "fixFrameExpansion"),
 
         /**
          * Behaviour for initialiser injections, current supported options are

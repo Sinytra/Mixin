@@ -31,8 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FrameNode;
@@ -46,13 +45,11 @@ import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
-import org.spongepowered.asm.mixin.refmap.IMixinContext;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.FrameData;
 import org.spongepowered.asm.mixin.transformer.ClassInfo.Method;
-import org.spongepowered.asm.mixin.transformer.MixinTargetContext;
-import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
 import org.spongepowered.asm.util.asm.ASM;
+import org.spongepowered.asm.util.asm.MethodNodeEx;
 import org.spongepowered.asm.util.asm.MixinVerifier;
 import org.spongepowered.asm.util.throwables.LVTGeneratorError;
 
@@ -335,13 +332,13 @@ public final class Locals {
      *      specified location
      */
     public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, int fabricCompatibility) {
-        return getLocalsAt(classNode, method, node, fabricCompatibility, false, null);
+        return getLocalsAt(classNode, method, node, fabricCompatibility, false);
     }
 
-    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, int fabricCompatibility, boolean fixFrameExpansion, IMixinContext context) {
+    public static LocalVariableNode[] getLocalsAt(ClassNode classNode, MethodNode method, AbstractInsnNode node, int fabricCompatibility, boolean fixFrameExpansion) {
         if (fabricCompatibility >= org.spongepowered.asm.mixin.FabricUtil.COMPATIBILITY_0_10_0) {
-            if (fixFrameExpansion && context instanceof MixinTargetContext) {
-                return Locals.getLocalsAtWithExpandedFrames(((MixinTargetContext) context).getTarget(), classNode, method, node);
+            if (fixFrameExpansion) {
+                return Locals.getLocalsAtWithExpandedFrames(classNode, method, node);
             }
             return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
         } else {
@@ -349,8 +346,24 @@ public final class Locals {
         }
     }
 
-    private static LocalVariableNode[] getLocalsAtWithExpandedFrames(ITargetClassContext context, ClassNode classNode, MethodNode method, AbstractInsnNode node) {
-        ClassNode expandedClass = context.getOriginalNode();
+    private static LocalVariableNode[] getLocalsAtWithExpandedFrames(ClassNode classNode, MethodNode method, AbstractInsnNode node) {
+        ClassNode expandedClass;
+
+        try {
+            expandedClass = new ClassNode();
+            ClassWriter writer = new ClassWriter(0);
+
+            ClassNode noMixinMethods = new ClassNode();
+            Bytecode.replace(classNode, noMixinMethods);
+            noMixinMethods.methods.removeIf(m -> m instanceof MethodNodeEx);
+            noMixinMethods.accept(writer);
+
+            ClassReader reader = new ClassReader(writer.toByteArray());
+            reader.accept(expandedClass, ClassReader.EXPAND_FRAMES);
+        } catch (Throwable t) {
+            return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
+        }
+
         MethodNode expandedMethod = expandedClass.methods.get(classNode.methods.indexOf(method));
         AbstractInsnNode expandedInsn = expandedMethod.instructions.get(method.instructions.indexOf(node));
 

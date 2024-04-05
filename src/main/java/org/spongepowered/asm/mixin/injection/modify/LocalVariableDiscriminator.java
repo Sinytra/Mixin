@@ -151,7 +151,7 @@ public class LocalVariableDiscriminator {
 
         private Local[] initLocals(Target target, boolean argsOnly, AbstractInsnNode node) {
             if (!argsOnly) {
-                LocalVariableNode[] locals = Locals.getLocalsAt(target.classNode, target.method, node, org.spongepowered.asm.mixin.FabricUtil.getCompatibility(info), org.spongepowered.asm.mixin.FabricUtil.getFrameExpansion(info), info.getMixin());
+                LocalVariableNode[] locals = Locals.getLocalsAt(target.classNode, target.method, node, org.spongepowered.asm.mixin.FabricUtil.getCompatibility(info), org.spongepowered.asm.mixin.FabricUtil.getFrameExpansion(info));
                 if (locals != null) {
                     Local[] lvt = new Local[locals.length];
                     for (int l = 0; l < locals.length; l++) {
