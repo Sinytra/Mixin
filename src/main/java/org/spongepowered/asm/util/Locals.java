@@ -364,7 +364,10 @@ public final class Locals {
             return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
         }
 
-        MethodNode expandedMethod = expandedClass.methods.get(classNode.methods.indexOf(method));
+        MethodNode expandedMethod = expandedClass.methods.stream().filter(m -> m.name.equals(method.name) && m.desc.equals(method.desc)).findFirst().orElse(null);
+        if (expandedMethod == null) {
+            return Locals.getLocalsAt(classNode, method, node, Settings.DEFAULT);
+        }
         AbstractInsnNode expandedInsn = expandedMethod.instructions.get(method.instructions.indexOf(node));
 
         ClassInfo nonExpandedInfo = ClassInfo.forNameDontExpandFrames(classNode.name);
